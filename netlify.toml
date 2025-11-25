@@ -1,8 +1,9 @@
 [build]
-  publish = "."  # change to 'public' if your HTML/JS/CSS is in a folder
+  publish = "."              # change to 'public' if your front-end is in a folder
   functions = "netlify/functions"
 
+# SPA redirect: ensures all front-end routes work
 [[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
+  from = "/*"
+  to = "/index.html"
   status = 200
