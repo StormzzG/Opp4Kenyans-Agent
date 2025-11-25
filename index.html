@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Opportunities for Kenyans — Chatbot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="chat-app">
+    <div class="chat-header">
+      <div class="chat-title">
+        <img id="bot-avatar" src="images/Avatar.avif" alt="Bot avatar" />
+        <div>
+          <div class="name">Opportunities for Kenyans Assistant</div>
+          <div class="subtitle">Your Friendly Assistant</div>
+        </div>
+      </div>
+      <button id="minimize-btn" title="Minimize">−</button>
+    </div>
+
+    <div id="messages" class="chat-messages" aria-live="polite"></div>
+
+    <form id="chat-form" class="chat-input" autocomplete="off">
+      <input id="chat-input" type="text" placeholder="Ask a question..." />
+      <button id="send-btn" type="submit">Send</button>
+    </form>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
