@@ -2,8 +2,12 @@
   publish = "."              # change to 'public' if your front-end is in a folder
   functions = "netlify/functions"
 
+[functions]
+  node_bundler = "esbuild"
+
 # SPA redirect: ensures all front-end routes work
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
