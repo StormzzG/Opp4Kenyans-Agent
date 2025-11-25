@@ -96,6 +96,26 @@ export async function handler(event, context) {
       return { statusCode: 400, body: JSON.stringify({ error: "Question missing." }) };
     }
 
+    // ⭐ GREETING DETECTOR — ALWAYS RESPOND WITH A WELCOME MESSAGE
+    const greetings = ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"];
+
+    if (greetings.includes(question.toLowerCase().trim())) {
+      const greetingReply = "Welcome to Opportunities for Kenyans! We're here to help you find opportunities that match your interests and skills. What can we assist you with today?";
+
+      // Save greeting to memory
+      await supabase.from("chat_history").insert([
+        { user_message: question, assistant_message: greetingReply }
+      ]);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          answer: greetingReply,
+          sources: []
+        })
+      };
+    }
+
     // 1. Generate embedding
     const embedding = await getEmbedding(question);
 
@@ -131,4 +151,5 @@ export async function handler(event, context) {
     return { statusCode: 500, body: JSON.stringify({ error: "Server failed." }) };
   }
 }
+
 
