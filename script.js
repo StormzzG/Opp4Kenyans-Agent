@@ -1,6 +1,4 @@
-// CHANGE THIS to your backend endpoint when deployed
-// during local dev use http://localhost:3000/chat
-const BACKEND_URL = "http://localhost:3000/chat";
+const BACKEND_URL = "/.netlify/functions/chat";
 
 const messagesDiv = document.getElementById("messages");
 const form = document.getElementById("chat-form");
