@@ -1,6 +1,8 @@
 [build]
-  publish = "public"        # or your front-end build folder
+  publish = "."  # change to 'public' if your HTML/JS/CSS is in a folder
   functions = "netlify/functions"
 
-[dev]
-  functions = "netlify/functions"
+[[redirects]]
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
