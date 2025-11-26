@@ -9,13 +9,13 @@
 }
 
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;padding: 0;overflow: hidden;font-family:"Outfit", sans-serif;background:var(--bg);color:#111}
+html,body{height:100%;margin:0;font-family:"Outfit", sans-serif;background:var(--bg);color:#111}
 
 .chat-app{
   width:100%;
   max-width:420px;
   height:100%;
-  margin:0;
+  margin:0 auto 0 0;
   display:flex;
   flex-direction:column;
   box-shadow:0 10px 30px rgba(0,0,0,0.08);
