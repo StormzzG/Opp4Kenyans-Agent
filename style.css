@@ -9,7 +9,7 @@
 }
 
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;padding: 0;font-family:"Outfit", sans-serif;background:var(--bg);color:#111}
+html,body{height:100%;margin:0;padding: 0;overflow: hidden;font-family:"Outfit", sans-serif;background:var(--bg);color:#111}
 
 .chat-app{
   width:100%;
