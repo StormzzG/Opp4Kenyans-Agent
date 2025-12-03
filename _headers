@@ -1,0 +1,26 @@
+/*
+  Access-Control-Allow-Origin: https://opportunitiesforkenyans.live
+  Access-Control-Allow-Methods: GET
+  Access-Control-Allow-Headers: *
+  Cache-Control: no-store
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+
+/*
+  Access-Control-Allow-Origin: http://localhost:3000
+  Access-Control-Allow-Methods: GET
+  Access-Control-Allow-Headers: *
+  Cache-Control: no-store
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+
+/*
+  Access-Control-Allow-Origin: http://127.0.0.1:5500
+  Access-Control-Allow-Methods: GET
+  Access-Control-Allow-Headers: *
+  Cache-Control: no-store
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
