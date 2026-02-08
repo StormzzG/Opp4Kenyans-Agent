@@ -28,14 +28,37 @@ function isLegalChunk(url, question) {
 }
 
 // ---------- EMBEDDING ----------
+// async function getEmbedding(text) {
+//   const resp = await axios.post(
+//     "https://api.together.xyz/v1/embeddings",
+//     { model: EMBED_MODEL, input: [text] },
+//     { headers: { Authorization: `Bearer ${TOGETHER_API_KEY}` } }
+//   );
+//   return resp.data.data[0].embedding;
+// }
 async function getEmbedding(text) {
+  const safeText =
+    typeof text === "string"
+      ? text.trim()
+      : String(text);
+
   const resp = await axios.post(
     "https://api.together.xyz/v1/embeddings",
-    { model: EMBED_MODEL, input: [text] },
-    { headers: { Authorization: `Bearer ${TOGETHER_API_KEY}` } }
+    {
+      model: EMBED_MODEL,
+      input: safeText   // ✅ STRING, not array
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${TOGETHER_API_KEY}`,
+        "Content-Type": "application/json"
+      }
+    }
   );
+
   return resp.data.data[0].embedding;
 }
+
 
 // ---------- RETRIEVAL ----------
 async function retrieveChunks(queryEmbedding, question) {
@@ -151,5 +174,6 @@ export async function handler(event, context) {
     return { statusCode: 500, body: JSON.stringify({ error: "Server failed." }) };
   }
 }
+
 
 
