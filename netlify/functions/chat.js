@@ -8,10 +8,9 @@ dotenv.config();
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY;
-
 const EMBED_MODEL = "togethercomputer/m2-bert-80M-32k-retrieval";
 const LLM_MODEL = "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo";
-const TOP_K = 5; // number of chunks to return
+const TOP_K = 5;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -21,44 +20,35 @@ function isLegalChunk(url, question) {
   const path = String(url).replace("https://opportunitiesforkenyans.live", "").toLowerCase();
   const q = String(question).toLowerCase();
   if (LEGAL_URLS.some(u => path.includes(u))) {
-    if (q.includes("term") || q.includes("privacy")) return false; // include
-    return true; // skip
+    if (q.includes("term") || q.includes("privacy") || q.includes("policy")) return false; // include if asking about it
+    return true; // skip otherwise
   }
-  return false; // normal chunk
+  return false;
 }
 
 // ---------- EMBEDDING ----------
-// async function getEmbedding(text) {
-//   const resp = await axios.post(
-//     "https://api.together.xyz/v1/embeddings",
-//     { model: EMBED_MODEL, input: [text] },
-//     { headers: { Authorization: `Bearer ${TOGETHER_API_KEY}` } }
-//   );
-//   return resp.data.data[0].embedding;
-// }
 async function getEmbedding(text) {
-  const safeText =
-    typeof text === "string"
-      ? text.trim()
-      : String(text);
-
-  const resp = await axios.post(
-    "https://api.together.xyz/v1/embeddings",
-    {
-      model: EMBED_MODEL,
-      input: safeText   // ✅ STRING, not array
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${TOGETHER_API_KEY}`,
-        "Content-Type": "application/json"
+  const safeText = typeof text === "string" ? text.trim() : String(text);
+  try {
+    const resp = await axios.post(
+      "https://api.together.xyz/v1/embeddings",
+      {
+        model: EMBED_MODEL,
+        input: safeText
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${TOGETHER_API_KEY}`,
+          "Content-Type": "application/json"
+        }
       }
-    }
-  );
-
-  return resp.data.data[0].embedding;
+    );
+    return resp.data.data[0].embedding;
+  } catch (err) {
+    console.error("Embedding error:", err.message);
+    throw err;
+  }
 }
-
 
 // ---------- RETRIEVAL ----------
 async function retrieveChunks(queryEmbedding, question) {
@@ -83,97 +73,137 @@ async function callLLM(question, contextText) {
     {
       role: "system",
       content: `
-You are the Opportunities for Kenyans AI assistant.
-Only answer using the provided context chunks.
-If the context does not contain the answer, reply exactly:
+You are a friendly, helpful assistant for Opportunities for Kenyans.
+
+Rules:
+- Only answer using information clearly present in the provided CONTEXT.
+- If the question is a simple greeting and CONTEXT has any welcoming/introductory text, reply warmly.
+- If no relevant information exists in CONTEXT to answer meaningfully, reply EXACTLY:
 "That information is not available on the Opportunities for Kenyans website at the moment. Please contact our team for more support at: opp4kenyans@gmail.com"
-Speak confidently using "we", "our platform", etc.
-`
+
+Be warm, concise, professional, encouraging. Use "we", "our platform" when appropriate.
+Never invent facts.
+      `
     },
     {
       role: "user",
-      content: `CONTEXT:\n${contextText}\n\nQUESTION: ${question}\nAnswer concisely using only the CONTEXT.`
+      content: `CONTEXT:\n${contextText || "(No relevant website content found)"}\n\nQUESTION: ${question}\nAnswer now:`
     }
   ];
 
-  const resp = await axios.post(
-    "https://api.together.xyz/v1/chat/completions",
-    {
-      model: LLM_MODEL,
-      messages,
-      temperature: 0.15,
-      max_tokens: 450,
-    },
-    { headers: { Authorization: `Bearer ${TOGETHER_API_KEY}` } }
-  );
+  try {
+    const resp = await axios.post(
+      "https://api.together.xyz/v1/chat/completions",
+      {
+        model: LLM_MODEL,
+        messages,
+        temperature: 0.2,     // slightly higher than 0.15 for friendlier tone
+        max_tokens: 500,
+      },
+      { headers: { Authorization: `Bearer ${TOGETHER_API_KEY}` } }
+    );
 
-  return resp.data.choices[0].message.content.trim();
+    return resp.data.choices[0].message.content.trim();
+  } catch (err) {
+    console.error("LLM error:", err.message);
+    return "Sorry, I'm having trouble responding right now.";
+  }
 }
 
 // ---------- NETLIFY FUNCTION ----------
 export async function handler(event, context) {
   try {
-    const { question } = JSON.parse(event.body || "{}");
+    const body = event.body ? JSON.parse(event.body) : {};
+    const question = body.question?.trim();
 
     if (!question) {
       return { statusCode: 400, body: JSON.stringify({ error: "Question missing." }) };
     }
 
-    // ⭐ GREETING DETECTOR — ALWAYS RESPOND WITH A WELCOME MESSAGE
-    const greetings = ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"];
+    // ────────────────────────────────────────────────────────────────
+    // Greeting detector – time-aware + more patterns (like local version)
+    // ────────────────────────────────────────────────────────────────
+    const questionLower = question.toLowerCase();
+    const greetingPatterns = [
+      /^hi|hello|hey|salam|habari|jambo|greetings$/i,
+      /^good (morning|afternoon|evening)$/i
+    ];
 
-    if (greetings.includes(question.toLowerCase().trim())) {
-      const greetingReply = "Welcome to Opportunities for Kenyans! We're here to help you find opportunities that match your interests and skills. What can we assist you with today?";
+    const isSimpleGreeting = questionLower.length < 40 &&
+      greetingPatterns.some(p => p.test(questionLower)) &&
+      !questionLower.includes("?") &&
+      !questionLower.includes("what") &&
+      !questionLower.includes("where") &&
+      !questionLower.includes("how");
 
-      // Save greeting to memory
-      await supabase.from("chat_history").insert([
-        { user_message: question, assistant_message: greetingReply }
-      ]);
+    if (isSimpleGreeting) {
+      const hour = new Date().getHours(); // EAT time
+
+      let warmReply = "Hello! Welcome to Opportunities for Kenyans 😊 How can I help you today?";
+
+      if (hour >= 5 && hour < 12) {
+        warmReply = "Good morning! Welcome to Opportunities for Kenyans 🌞 How can I assist you?";
+      } else if (hour >= 12 && hour < 17) {
+        warmReply = "Good afternoon! Welcome to Opportunities for Kenyans ☀️ What’s on your mind?";
+      } else {
+        warmReply = "Good evening! Welcome to Opportunities for Kenyans 🌙 How can I support you?";
+      }
+
+      // Save to chat history
+      try {
+        const { error } = await supabase.from("chat_history").insert([
+          { user_message: question, assistant_message: warmReply }
+        ]);
+        if (error) console.error("Greeting history insert error:", error);
+      } catch (err) {
+        console.error("Unexpected error logging greeting:", err);
+      }
 
       return {
         statusCode: 200,
         body: JSON.stringify({
-          answer: greetingReply,
+          answer: warmReply,
           sources: []
         })
       };
     }
 
-    // 1. Generate embedding
-    const embedding = await getEmbedding(question);
+    // ────────────────────────────────────────────────────────────────
+    // Normal flow
+    // ────────────────────────────────────────────────────────────────
 
-    // 2. Retrieve chunks
+    const embedding = await getEmbedding(question);
     const chunks = await retrieveChunks(embedding, question);
 
-    // 3. Prepare context text
     let contextText = "";
     if (chunks.length > 0) {
       contextText = chunks.map(c => `From ${c.url}:\n${c.chunk}`).join("\n\n---\n\n");
     }
 
-    // 4. Get answer from LLM
     const answer = await callLLM(question, contextText);
 
-    // 5. Save memory in Supabase
-    const { error: insertError } = await supabase.from("chat_history").insert([
-      { user_message: question, assistant_message: answer }
-    ]);
-
-    if (insertError) {
-      console.error("Failed to store chat history:", insertError);
+    // Save to chat history
+    try {
+      const { error } = await supabase.from("chat_history").insert([
+        { user_message: question, assistant_message: answer }
+      ]);
+      if (error) console.error("Failed to store chat history:", error);
+    } catch (err) {
+      console.error("Unexpected error logging chat:", err);
     }
 
-    // 6. Return response
     return {
       statusCode: 200,
-      body: JSON.stringify({ answer, sources: chunks.map(c => c.url) })
+      body: JSON.stringify({
+        answer,
+        sources: chunks.map(c => c.url)
+      })
     };
-
   } catch (err) {
     console.error("Server error:", err);
-    return { statusCode: 500, body: JSON.stringify({ error: "Server failed." }) };
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Server failed." })
+    };
   }
 }
-
-
-
