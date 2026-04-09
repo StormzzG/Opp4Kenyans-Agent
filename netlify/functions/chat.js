@@ -28,25 +28,34 @@ function isLegalChunk(url, question) {
   return false;
 }
 
-// ---------- EMBEDDING (Cohere) ----------
+// ---------- GET EMBEDDING ----------
 async function getEmbedding(text) {
   try {
     const response = await cohere.embed({
       model: "embed-english-v3.0",
       texts: [text],
-      input_type: "search_query",
-      embedding_types: ["float"],
+      inputType: "search_query",        // ← Changed to camelCase (important!)
+      embeddingTypes: ["float"],        // ← Also changed to camelCase
     });
 
+    let embedding;
+
     if (response.embeddings?.float?.[0]) {
-      return response.embeddings.float[0];
+      embedding = response.embeddings.float[0];
     } else if (Array.isArray(response.embeddings) && response.embeddings[0]) {
-      return response.embeddings[0];
+      embedding = response.embeddings[0];
+    } else if (response.embeddings?.float?.length > 0) {
+      embedding = response.embeddings.float[0];
     }
 
-    throw new Error("No valid embedding returned from Cohere");
+    if (!embedding || !Array.isArray(embedding) || embedding.length === 0) {
+      throw new Error("No valid embedding vector returned from Cohere");
+    }
+
+    return embedding;
   } catch (err) {
-    console.error("Cohere embedding error:", err.message);
+    console.error("Cohere embedding error:", err.message || err);
+    if (err.errors) console.error("Cohere errors:", err.errors);
     throw err;
   }
 }
