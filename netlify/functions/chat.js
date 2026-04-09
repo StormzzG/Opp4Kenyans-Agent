@@ -94,7 +94,7 @@ Never invent facts or use external knowledge.
 
   try {
     const response = await cohere.chat({
-      model: "command-r-plus",           // Best current model (change to "command-r" if cheaper needed)
+      model: "command-a-03-2025",           // Best current model (change to "command-r" if cheaper needed)
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `CONTEXT:\n${contextText || "(No relevant website content found)"}\n\nQUESTION: ${question}` }
